@@ -5,21 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#fbf8ec">
   <title>Spin Wheels — Toko Mas Jawa</title>
-  <!--
-    REVISI BERDASARKAN "Spin Wheels.mp4" — kanvas desain 1920 × 1080.
-
-    CARA PASANG
-    Ganti HTML lama dengan file ini di folder aset Anda. Nama aset tetap:
-    BG.png, Logo Jawa.png, Lingkaran Luar.png, Dot.png, Jarum.png,
-    Tengah.png, Text Box.png, RT Dyans Basic.ttf.
-    Bila aset berada di subfolder, ubah CONFIG.assetBase di bawah.
-    Contoh: assetBase: './assets/'
-
-    Gambar asli diprioritaskan. Gradien/SVG hanya menjadi tampilan cadangan
-    jika aset belum tersedia. Poppins dapat diambil dari Google Fonts atau
-    font yang terpasang di komputer. Animasi tidak memerlukan library/CDN JS.
-    Durasi, posisi, dan daftar/peluang hadiah ada di CONFIG dan dataHadiah.
-  -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap">
   <style>
     * { box-sizing: border-box; }
@@ -50,7 +35,7 @@
       width: 650px; height: 870px; z-index: 20;
       will-change: transform, opacity;
     }
-    .logo-container { position: absolute; left: 0; top: 0; width: 380px; height: 110px; }
+    .logo-container { position: absolute; left: 0; top: 0; width: 480px; height: 140px; }
     .asset-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: none; }
     .has-asset > .asset-image { display: block; }
     .has-asset > .asset-fallback { visibility: hidden; }
