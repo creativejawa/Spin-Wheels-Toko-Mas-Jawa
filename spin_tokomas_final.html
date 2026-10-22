@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fbf8ec">
+  <title>Spin Wheels — Toko Mas Jawa</title>
+  <!--
+    REVISI BERDASARKAN "Spin Wheels.mp4" — kanvas desain 1920 × 1080.
+
+    CARA PASANG
+    Ganti HTML lama dengan file ini di folder aset Anda. Nama aset tetap:
+    BG.png, Logo Jawa.png, Lingkaran Luar.png, Dot.png, Jarum.png,
+    Tengah.png, Text Box.png, RT Dyans Basic.ttf.
+    Bila aset berada di subfolder, ubah CONFIG.assetBase di bawah.
+    Contoh: assetBase: './assets/'
+
+    Gambar asli diprioritaskan. Gradien/SVG hanya menjadi tampilan cadangan
+    jika aset belum tersedia. Poppins dapat diambil dari Google Fonts atau
+    font yang terpasang di komputer. Animasi tidak memerlukan library/CDN JS.
+    Durasi, posisi, dan daftar/peluang hadiah ada di CONFIG dan dataHadiah.
+  -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { background: #161616; font-family: 'Poppins', Arial, sans-serif; }
+    button { font: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    button:focus-visible { outline: 6px solid #1a1a1a; outline-offset: 10px; }
+    [hidden] { display: none !important; }
+    #app {
+      position: absolute; left: 50%; top: 50%;
+      width: 1920px; height: 1080px;
+      transform: translate(-50%, -50%) scale(var(--app-scale, 1));
+      transform-origin: center; overflow: hidden; isolation: isolate;
+      background-color: #fff;
+      background-image:
+        radial-gradient(ellipse at 0% 100%, #f5eeb2 0%, transparent 46%),
+        radial-gradient(ellipse at 4% 8%, #fcf4dc 0%, transparent 58%),
+        radial-gradient(ellipse at 62% 0%, #fff4ef 0%, transparent 45%);
+      background-size: 100% 100%; background-repeat: no-repeat; color: #080909;
+    }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0;
+      margin: -1px; overflow: hidden; clip-path: inset(50%);
+      white-space: nowrap; border: 0;
+    }
+    .left-section {
+      position: absolute; left: 66px; top: 104px;
+      width: 650px; height: 870px; z-index: 20;
+      will-change: transform, opacity;
+    }
+    .logo-container { position: absolute; left: 0; top: 0; width: 380px; height: 110px; }
+    .asset-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: none; }
+    .has-asset > .asset-image { display: block; }
+    .has-asset > .asset-fallback { visibility: hidden; }
+    .logo-container .asset-image { object-position: left center; }
+    .logo-fallback { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+    .logo-fallback span { font: 500 18px Arial, sans-serif; letter-spacing: 12px; }
+    .logo-fallback strong { font: 700 78px/.95 Georgia, serif; letter-spacing: 2px; }
+    .subtitle { position: absolute; left: 0; top: 164px; margin: 0; font-size: 38px; font-weight: 400; line-height: 54px; }
+    .main-title {
+      position: absolute; left: 0; top: 242px; margin: 0;
+      width: 1050px; font: 900 88px/1.07 Georgia, serif;
+      letter-spacing: -2px; transform: scaleX(.60); transform-origin: left top;
+    }
+    .font-headline .main-title {
+      width: 650px; font-family: 'RT Dyans Basic', Georgia, serif;
+      font-weight: 700; letter-spacing: 0; transform: none;
+    }
+    .main-title > span { display: block; white-space: nowrap; }
+    .main-title .highlight { color: #df4c39; }
+    .glossy-box {
+      background-color: #de7c58;
+      background-image:
+        radial-gradient(ellipse at 85% 0%, #fff9 0%, transparent 45%),
+        radial-gradient(ellipse at 13% 100%, #df8254 0%, transparent 60%),
+        linear-gradient(115deg, #db7650, #ef302d);
+      background-size: 100% 100%; background-repeat: no-repeat;
+      border: 0; border-radius: 24px; color: #fff;
+      box-shadow: inset 0 2px 5px #fff8;
+    }
+    #spinBtn {
+      position: absolute; left: 10px; top: 758px;
+      width: 426px; height: 94px; padding: 0 20px;
+      border-radius: 20px; cursor: pointer;
+      font-size: 42px; font-weight: 800; line-height: 1;
+      transition: transform 150ms ease;
+    }
+    #spinBtn:hover:enabled { transform: scale(1.025); }
+    #spinBtn:active:enabled { transform: scale(.975); }
+    #spinBtn:disabled { cursor: default; }
+    /* Roda bergerak sebagai satu unit; hanya wheelInner yang berotasi. */
+    .wheel-container {
+      position: absolute; left: 0; top: 0; width: 1650px; height: 1650px;
+      transform: translate3d(619px, 25px, 0); transform-origin: center;
+      z-index: 10; will-change: transform;
+    }
+    .outer-ring, .dot-ring { position: absolute; inset: 0; pointer-events: none; }
+    .outer-ring { z-index: 1; }
+    .rim-fallback {
+      position: absolute; inset: 0; border-radius: 50%;
+      background: conic-gradient(from -140deg, #f8cbc4, #f6dad5 14deg, #e34c36 45deg, #e34c36 300deg, #f8cbc4);
+    }
+    .rim-fallback::after { content: ''; position: absolute; inset: 22px; border-radius: 50%; background: #fffdf9; }
+    .dot-ring { inset: 2.5%; z-index: 2; }
+    .dot-fallback { position: absolute; inset: 0; }
+    .dot-fallback i {
+      position: absolute; width: 24px; height: 24px; border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(circle at 30% 20%, #ee8b76, #e34c36 65%);
+    }
+    .wheel-inner-container {
+      position: absolute; inset: 4.65%; border-radius: 50%; z-index: 3;
+      overflow: hidden; background: #fff; transform-origin: center; will-change: transform;
+    }
+    #wheel { display: block; width: 100%; height: 100%; border-radius: 50%; }
+    .center-hub {
+      position: absolute; width: 354px; height: 354px;
+      left: calc(50% - 177px); top: calc(50% - 177px); z-index: 5; pointer-events: none;
+    }
+    .hub-fallback {
+      position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+      box-shadow: inset 0 3px 7px #fffc;
+      background:
+        radial-gradient(ellipse at 81% 4%, #fff 0%, #fff0 49%),
+        radial-gradient(ellipse at 0% 85%, #df8057 0%, #df8057 30%, #df805700 66%),
+        linear-gradient(140deg, #d43122 10%, #e44e3b 48%, #d72522);
+    }
+    .hub-fallback svg { position: absolute; width: 39%; height: 39%; left: 30.5%; top: 30.5%; }
+    .pointer { position: absolute; width: 140px; height: 156px; z-index: 6; pointer-events: none; }
+    .pointer .asset-image { transform: rotate(var(--pointer-asset-rotation, 0deg)); }
+    .pointer svg { display: block; width: 100%; height: 100%; }
+    /* Hasil menggunakan latar yang sama seperti video. */
+    .result-scene { position: absolute; inset: 0; z-index: 30; pointer-events: none; opacity: 0; visibility: hidden; }
+    .result-scene.is-visible { visibility: visible; }
+    .result-scene.is-active { pointer-events: auto; }
+    .result-content {
+      position: absolute; left: 0; top: 302px; width: 100%; text-align: center;
+      will-change: transform, opacity, filter;
+    }
+    .result-title { margin: 0 0 30px; font-size: 56px; font-weight: 400; line-height: 1.5; }
+    .result-prize-box {
+      display: flex; align-items: center; justify-content: center;
+      width: 1188px; min-height: 260px; margin: 0 auto;
+      padding: 28px 40px; border-radius: 50px; transform: translateX(-30px);
+    }
+    #prizeText { margin: 0; font-size: 160px; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; }
+    #closeBtn {
+      position: absolute; left: calc(50% - 56px); bottom: 88px;
+      width: 112px; height: 112px; padding: 0; display: grid; place-items: center;
+      color: #fff; background: #050505; border: 0; border-radius: 50%; cursor: pointer; opacity: 0;
+    }
+    #closeBtn svg { width: 38px; height: 38px; }
+    #closeBtn:hover { background: #272727; }
+    #closeBtn:focus-visible { outline-color: #df4c39; }
+    @media (prefers-reduced-motion: reduce) {
+      #spinBtn { transition: none; }
+      .wheel-container, .wheel-inner-container, .left-section, .result-content { will-change: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main id="app" data-state="idle" aria-label="Spin Wheels Toko Mas Jawa">
+    <section class="left-section" id="intro" aria-label="Putar untuk memenangkan hadiah">
+      <div class="logo-container" role="img" aria-label="Toko Mas Jawa">
+        <div class="logo-fallback asset-fallback" aria-hidden="true"><span>TOKOMAS</span><strong>JAWA</strong></div>
+        <img class="asset-image" data-asset="logo" alt="" draggable="false">
+      </div>
+      <p class="subtitle">SPIN WHEELS...</p>
+      <h1 class="main-title">
+        <span><span class="highlight">PUTAR</span> UNTUK</span>
+        <span>MENANGKAN</span>
+        <span>HADIAH MENARIK</span>
+      </h1>
+      <button class="glossy-box" id="spinBtn" type="button">Tap to Spin</button>
+    </section>
+    <div class="wheel-container" id="wheelScene" aria-hidden="true">
+      <div class="outer-ring">
+        <div class="rim-fallback asset-fallback"></div>
+        <img class="asset-image" data-asset="outerRing" alt="" draggable="false">
+      </div>
+      <div class="dot-ring">
+        <div class="dot-fallback asset-fallback" id="dotFallback"></div>
+        <img class="asset-image" data-asset="dots" alt="" draggable="false">
+      </div>
+      <div class="wheel-inner-container" id="wheelInner"><canvas id="wheel" width="2000" height="2000"></canvas></div>
+      <!-- Hub dan jarum berada di luar elemen berputar. -->
+      <div class="center-hub">
+        <div class="hub-fallback asset-fallback">
+          <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M46 6Q50-4 54 6L63 29Q65 35 71 37L94 46Q104 50 94 54L71 63Q65 65 63 71L54 94Q50 104 46 94L37 71Q35 65 29 63L6 54Q-4 50 6 46L29 37Q35 35 37 29Z" fill="white"/></svg>
+        </div>
+        <img class="asset-image" data-asset="hub" alt="" draggable="false">
+      </div>
+      <div class="pointer" id="pointer">
+        <svg class="asset-fallback" viewBox="0 0 140 156" aria-hidden="true">
+          <defs><linearGradient id="pointerShine" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#d72825"/><stop offset=".47" stop-color="#e54434"/><stop offset="1" stop-color="#ffe5cd"/></linearGradient></defs>
+          <path d="M10 72L113 7Q123 0 124 13L135 144Q136 156 126 151L9 85Q1 79 10 72Z" fill="url(#pointerShine)"/>
+        </svg>
+        <img class="asset-image" data-asset="pointer" alt="" draggable="false">
+      </div>
+    </div>
+    <section class="result-scene" id="prizeModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle" aria-describedby="prizeText" aria-hidden="true" inert>
+      <div class="result-content" id="resultContent">
+        <h2 class="result-title" id="resultTitle">Selamat! Kamu Mendapatkan:</h2>
+        <div class="result-prize-box glossy-box" id="prizeBox"><p id="prizeText">HADIAH 6</p></div>
+      </div>
+      <button id="closeBtn" type="button" aria-label="Tutup hasil dan kembali ke putaran" disabled>
+        <svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 6L32 34M32 6L8 34" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>
+      </button>
+    </section>
+    <p class="sr-only" id="statusText" role="status" aria-live="polite"></p>
+    <noscript>Aktifkan JavaScript di browser untuk memutar roda hadiah.</noscript>
+  </main>
+  <script>
+    'use strict';
+    const CONFIG = {
+      assetBase: './',
+      assets: {
+        background: 'BG.png', logo: 'Logo Jawa.png', outerRing: 'Lingkaran Luar.png',
+        dots: 'Dot.png', pointer: 'Jarum.png', hub: 'Tengah.png',
+        textBox: 'Text Box.png', headlineFont: 'RT Dyans Basic.ttf'
+      },
+      designWidth: 1920, designHeight: 1080, wheelSize: 1650,
+      idlePose: { x: 1444, y: 850, scale: 1 },
+      spinPose: { x: 960, y: 678, scale: .8 },
+      exitY: 1900,
+      startAngle: -135, pointerAngle: -124, pointerAssetRotation: 0,
+      // Berhenti di dalam sektor, sesuai posisi jarum pada video.
+      landingFraction: 11 / 45,
+      fullTurns: 3,
+      timing: { move: 1800, spin: 5200, hold: 600, exit: 1150, revealDelay: 280, reveal: 950, closeDelay: 450, reset: 700 }
+    };
+    // Bobot asli: HADIAH 6 = 30; masing-masing hadiah lain = 10.
+    // Urutan searah jarum jam dari sektor magenta kiri atas.
+    const dataHadiah = [
+      { nama: 'SATE', warna: '#dc00ef', bobot: 10 },
+      { nama: 'SOTO', warna: '#642187', bobot: 10 },
+      { nama: 'TELOR', warna: '#e94d20', bobot: 10 },
+      { nama: 'NUGGET', warna: '#00eeef', bobot: 10 },
+	  { nama: 'PUASA', warna: '#642187', bobot: 10 },
+	  { nama: 'KUE ULANG TAHUN', warna: '#e94d20', bobot: 10 },
+
+    ];
+    const $ = id => document.getElementById(id);
+    const app = $('app'), intro = $('intro'), wheelScene = $('wheelScene'), wheelInner = $('wheelInner');
+    const canvas = $('wheel'), ctx = canvas.getContext('2d');
+    const spinBtn = $('spinBtn'), closeBtn = $('closeBtn'), prizeModal = $('prizeModal');
+    const resultContent = $('resultContent'), prizeText = $('prizeText'), statusText = $('statusText');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sliceAngle = 360 / dataHadiah.length;
+    const radians = degrees => degrees * Math.PI / 180;
+    const clamp = value => Math.max(0, Math.min(1, value));
+    const mix = (a, b, amount) => a + (b - a) * amount;
+    const normalize = degrees => ((degrees % 360) + 360) % 360;
+    const easeInOut = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    const easeOut = t => 1 - Math.pow(1 - t, 3);
+    let state = 'idle', currentRotation = 0, rafId = 0;
+    let resumeAnimation = null, revealAnnounced = false;
+
+    function setState(next) { state = next; app.dataset.state = next; }
+    function resizeApp() {
+      app.style.setProperty('--app-scale', String(Math.min(window.innerWidth / CONFIG.designWidth, window.innerHeight / CONFIG.designHeight)));
+    }
+    function poseWheel(x, y, scale) {
+      wheelScene.style.transform = `translate3d(${x - CONFIG.wheelSize / 2}px, ${y - CONFIG.wheelSize / 2}px, 0) scale(${scale})`;
+    }
+    function rotateWheel(angle) { currentRotation = angle; wheelInner.style.transform = `rotate(${angle}deg)`; }
+    function placePointer() {
+      const radius = CONFIG.wheelSize / 2;
+      // Koordinat ujung jarum, bukan pusat kotak gambar.
+      const tipX = radius + Math.cos(radians(CONFIG.pointerAngle)) * radius * .872;
+      const tipY = radius + Math.sin(radians(CONFIG.pointerAngle)) * radius * .872;
+      $('pointer').style.left = `${tipX - 128}px`;
+      $('pointer').style.top = `${tipY - 151}px`;
+      $('pointer').style.setProperty('--pointer-asset-rotation', `${CONFIG.pointerAssetRotation}deg`);
+    }
+    function drawDots() {
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i < 18; i++) {
+        const dot = document.createElement('i'), angle = radians(-91 + i * 20);
+        dot.style.left = `${50 + 49 * Math.cos(angle)}%`;
+        dot.style.top = `${50 + 49 * Math.sin(angle)}%`;
+        fragment.appendChild(dot);
+      }
+      $('dotFallback').replaceChildren(fragment);
+    }
+    function drawWheel() {
+      if (!ctx) return;
+      const center = canvas.width / 2, radius = center - 2, corner = 35;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save(); ctx.translate(center, center);
+      dataHadiah.forEach((prize, index) => {
+        const start = radians(CONFIG.startAngle + index * sliceAngle) + .0015;
+        const end = radians(CONFIG.startAngle + (index + 1) * sliceAngle) - .0015;
+        const rounded = corner / radius;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        ctx.lineTo((radius - corner) * Math.cos(start), (radius - corner) * Math.sin(start));
+        ctx.quadraticCurveTo(radius * Math.cos(start), radius * Math.sin(start), radius * Math.cos(start + rounded), radius * Math.sin(start + rounded));
+        ctx.arc(0, 0, radius, start + rounded, end - rounded);
+        ctx.quadraticCurveTo(radius * Math.cos(end), radius * Math.sin(end), (radius - corner) * Math.cos(end), (radius - corner) * Math.sin(end));
+        ctx.closePath(); ctx.fillStyle = prize.warna; ctx.fill();
+        const shading = ctx.createRadialGradient(0, 0, 110, 0, 0, radius * .82);
+        shading.addColorStop(0, 'rgba(0,0,0,.24)');
+        shading.addColorStop(.42, 'rgba(0,0,0,.09)');
+        shading.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = shading; ctx.fill();
+        const middle = (start + end) / 2;
+        ctx.save();
+        ctx.translate(Math.cos(middle) * radius * .655, Math.sin(middle) * radius * .655);
+        ctx.rotate(middle + Math.PI);
+        ctx.fillStyle = '#fff'; ctx.font = "800 92px 'Poppins', Arial, sans-serif";
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(prize.nama, 0, 0, radius * .57);
+        ctx.restore();
+      });
+      ctx.restore();
+    }
+    function assetURL(key) {
+      const base = CONFIG.assetBase.endsWith('/') ? CONFIG.assetBase : `${CONFIG.assetBase}/`;
+      return new URL(base + CONFIG.assets[key], document.baseURI).href;
+    }
+    function loadAssets() {
+      document.querySelectorAll('[data-asset]').forEach(img => {
+        img.addEventListener('load', () => img.parentElement.classList.add('has-asset'), { once: true });
+        img.addEventListener('error', () => img.removeAttribute('src'), { once: true });
+        img.src = assetURL(img.dataset.asset);
+      });
+      [['background', [app]], ['textBox', [spinBtn, $('prizeBox')]]].forEach(([key, targets]) => {
+        const image = new Image();
+        image.onload = () => targets.forEach(element => {
+          element.style.backgroundImage = `url(${JSON.stringify(image.src)})`;
+          if (key === 'textBox') element.style.boxShadow = 'none';
+        });
+        image.src = assetURL(key);
+      });
+      if ('FontFace' in window) {
+        const source = `local("RT Dyans Basic"), local("RT-Dyans-Basic"), url(${JSON.stringify(assetURL('headlineFont'))})`;
+        const headline = new FontFace('RT Dyans Basic', source, { weight: '700', display: 'swap' });
+        headline.load().then(font => { document.fonts.add(font); app.classList.add('font-headline'); }).catch(() => {});
+      }
+      if (document.fonts) {
+        document.fonts.ready.then(drawWheel);
+        document.fonts.addEventListener('loadingdone', drawWheel);
+      }
+    }
+    function choosePrize() {
+      const total = dataHadiah.reduce((sum, item) => sum + Math.max(0, Number(item.bobot) || 0), 0);
+      if (total <= 0) throw new Error('Minimal satu hadiah harus memiliki bobot lebih dari nol.');
+      let value = Math.random() * total;
+      for (let index = 0; index < dataHadiah.length; index++) {
+        value -= Math.max(0, Number(dataHadiah[index].bobot) || 0);
+        if (value < 0) return index;
+      }
+      return dataHadiah.length - 1;
+    }
+    function rotationForPrize(index, from) {
+      // Sudut awal harus SAMA dengan drawWheel(), termasuk saat mengulang.
+      const localLanding = CONFIG.startAngle + (index + CONFIG.landingFraction) * sliceAngle;
+      const finalAngle = normalize(CONFIG.pointerAngle - localLanding);
+      return from + CONFIG.fullTurns * 360 + normalize(finalAngle - normalize(from));
+    }
+    function prizeAtPointer(rotation) {
+      return Math.floor(normalize(CONFIG.pointerAngle - rotation - CONFIG.startAngle) / sliceAngle);
+    }
+    /* Satu RAF mengendalikan seluruh urutan, dijeda saat tab tersembunyi. */
+    function animate(duration, render, complete) {
+      cancelAnimationFrame(rafId);
+      let elapsed = 0, previous = null;
+      function frame(now) {
+        if (document.hidden) { previous = null; return; }
+        if (previous !== null) elapsed += now - previous;
+        previous = now;
+        render(Math.min(elapsed, duration));
+        if (elapsed < duration) rafId = requestAnimationFrame(frame);
+        else { resumeAnimation = null; complete(); }
+      }
+      resumeAnimation = () => { previous = null; rafId = requestAnimationFrame(frame); };
+      render(0);
+      if (!document.hidden) rafId = requestAnimationFrame(frame);
+    }
+    function showResultProgress(progress) {
+      const amount = easeOut(clamp(progress));
+      prizeModal.classList.add('is-visible'); prizeModal.style.opacity = '1';
+      resultContent.style.opacity = String(amount);
+      resultContent.style.transform = `translate3d(0, ${40 * (1 - amount)}px, 0) scale(${1.03 - .03 * amount})`;
+      resultContent.style.filter = `blur(${18 * (1 - amount)}px)`;
+    }
+    function finishResult() {
+      setState('result');
+      wheelScene.style.visibility = 'hidden'; intro.style.visibility = 'hidden';
+      showResultProgress(1); prizeModal.classList.add('is-active');
+      prizeModal.removeAttribute('aria-hidden'); prizeModal.inert = false;
+      closeBtn.disabled = false; closeBtn.style.opacity = '1'; closeBtn.style.transform = 'none';
+      statusText.textContent = `Selamat! Kamu mendapatkan ${prizeText.textContent}.`;
+      closeBtn.focus({ preventScroll: true });
+    }
+    function spin() {
+      if (state !== 'idle') return;
+      const winner = choosePrize(), from = normalize(currentRotation);
+      const target = rotationForPrize(winner, from);
+      setState('spinning'); spinBtn.disabled = true; spinBtn.blur();
+      intro.inert = true; intro.setAttribute('aria-hidden', 'true');
+      statusText.textContent = 'Roda sedang berputar.'; revealAnnounced = false;
+      prizeText.textContent = dataHadiah[winner].nama;
+      prizeText.style.fontSize = `${Math.min(160, 1350 / Math.max(8, dataHadiah[winner].nama.length))}px`;
+      const time = CONFIG.timing;
+      const exitStart = time.spin + time.hold, revealStart = exitStart + time.revealDelay;
+      const revealEnd = revealStart + time.reveal, closeStart = revealEnd + time.closeDelay;
+      const total = Math.max(exitStart + time.exit, closeStart + 300);
+      if (reducedMotion.matches) {
+        rotateWheel(normalize(target)); intro.style.opacity = '0';
+        poseWheel(CONFIG.spinPose.x, CONFIG.exitY, CONFIG.spinPose.scale);
+        animate(200, elapsed => showResultProgress(elapsed / 200), finishResult);
+        return;
+      }
+      animate(total, elapsed => {
+        const move = easeInOut(clamp(elapsed / time.move));
+        const textMove = easeInOut(clamp(elapsed / 1250));
+        intro.style.transform = `translate3d(${-850 * textMove}px, 0, 0)`;
+        intro.style.opacity = String(1 - clamp((textMove - .45) / .55));
+        const spinProgress = clamp(elapsed / time.spin);
+        // Kecepatan mulai dari nol, naik, lalu melambat hingga nol.
+        const turnProgress = 1 - Math.pow(1 - spinProgress, 4) * (1 + 4 * spinProgress);
+        rotateWheel(mix(from, target, turnProgress));
+        const leaving = easeInOut(clamp((elapsed - exitStart) / time.exit));
+        poseWheel(
+          mix(CONFIG.idlePose.x, CONFIG.spinPose.x, move),
+          mix(mix(CONFIG.idlePose.y, CONFIG.spinPose.y, move), CONFIG.exitY, leaving),
+          mix(CONFIG.idlePose.scale, CONFIG.spinPose.scale, move)
+        );
+        if (elapsed >= exitStart && !revealAnnounced) {
+          revealAnnounced = true; setState('revealing');
+          prizeText.textContent = dataHadiah[prizeAtPointer(target)].nama;
+        }
+        if (elapsed >= revealStart) showResultProgress((elapsed - revealStart) / time.reveal);
+        const closeProgress = easeOut(clamp((elapsed - closeStart) / 300));
+        closeBtn.style.opacity = String(closeProgress);
+        closeBtn.style.transform = `scale(${.8 + .2 * closeProgress})`;
+      }, () => { rotateWheel(normalize(target)); finishResult(); });
+    }
+    function reset() {
+      if (state !== 'result') return;
+      setState('resetting'); closeBtn.disabled = true; closeBtn.blur();
+      prizeModal.inert = true; prizeModal.setAttribute('aria-hidden', 'true');
+      prizeModal.classList.remove('is-active'); statusText.textContent = '';
+      rotateWheel(0); intro.style.visibility = 'visible'; wheelScene.style.visibility = 'visible';
+      const duration = reducedMotion.matches ? 150 : CONFIG.timing.reset;
+      animate(duration, elapsed => {
+        const progress = easeOut(clamp(elapsed / duration));
+        prizeModal.style.opacity = String(1 - progress); intro.style.opacity = String(progress);
+        intro.style.transform = `translate3d(${-850 * (1 - progress)}px, 0, 0)`;
+        poseWheel(mix(CONFIG.spinPose.x, CONFIG.idlePose.x, progress), mix(CONFIG.exitY, CONFIG.idlePose.y, progress), mix(CONFIG.spinPose.scale, CONFIG.idlePose.scale, progress));
+      }, () => {
+        prizeModal.classList.remove('is-visible'); closeBtn.style.opacity = '0';
+        intro.removeAttribute('aria-hidden'); intro.inert = false; spinBtn.disabled = false;
+        setState('idle'); spinBtn.focus({ preventScroll: true });
+      });
+    }
+    spinBtn.addEventListener('click', spin);
+    closeBtn.addEventListener('click', reset);
+    document.addEventListener('keydown', event => {
+      if (state === 'result' && event.key === 'Escape') { event.preventDefault(); reset(); }
+      if (state === 'result' && event.key === 'Tab') { event.preventDefault(); closeBtn.focus(); }
+    });
+    document.addEventListener('visibilitychange', () => {
+      cancelAnimationFrame(rafId);
+      if (!document.hidden && resumeAnimation) resumeAnimation();
+    });
+    window.addEventListener('resize', resizeApp, { passive: true });
+    resizeApp(); poseWheel(CONFIG.idlePose.x, CONFIG.idlePose.y, CONFIG.idlePose.scale);
+    placePointer(); drawDots(); drawWheel(); loadAssets();
+  </script>
+</body>
+</html>
